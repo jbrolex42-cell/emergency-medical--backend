@@ -6,8 +6,7 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const bcrypt = require("bcrypt")
 const multer =require('multer')
-const { testConnection } = require('./src/config/database');
-const { sequelize } = require('./src/config/database');
+const { sequelize,testConnection } = require('./src/config/database');
 const logger = require('./src/utils/logger');
 
 // Import routes
@@ -115,5 +114,4 @@ const startServer = async () => {
     process.exit(1);
   }
 };
-
 startServer();
