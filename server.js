@@ -11,7 +11,7 @@ const logger = require('./src/utils/logger');
 
 // Import routes
 const authRoutes = require('./src/routes/auth');
-const subscriptionRoutes = require('./src/routes/Subscriptions');
+const subscriptionRoutes = require('./src/routes/subscriptions');
 const emergencyRoutes = require('./src/routes/emergencies');
 const providerRoutes = require('./src/routes/providers');
 
