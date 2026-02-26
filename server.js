@@ -43,7 +43,7 @@ app.use("/api/", globalLimiter);
 
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 5,
+    max: 20,
     message: "Too many authentication attempts. Try later."
 });
 
@@ -83,7 +83,6 @@ app.use((req,res)=>{
         error:"Route not found"
     });
 });
-
 
 const PORT = process.env.PORT || 10000;
 
