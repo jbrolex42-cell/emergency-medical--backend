@@ -3,7 +3,7 @@ const securityMiddleware = require('./middleware/security');
 const errorHandler = require('./middleware/errorHandler');
 const routes = require('./routes');
 const logger = require('./utils/logger');
-
+const path = require('path');
 const app = express();
 
 // Security middleware
