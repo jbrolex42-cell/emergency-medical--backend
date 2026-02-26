@@ -18,7 +18,7 @@ module.exports = {
   DATABASE_URL: process.env.DATABASE_URL,
   JWT_SECRET: process.env.JWT_SECRET,
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '24h',
-  FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:5173',
+  FRONTEND_URL: process.env.FRONTEND_URL || 'https://emergency-frontend-sepia.vercel.app',
   
   // SHA (Social Health Authority) Integration
   SHA_API_URL: process.env.SHA_API_URL || 'https://api.sha.go.ke/v1',
