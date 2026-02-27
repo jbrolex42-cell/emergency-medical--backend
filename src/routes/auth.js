@@ -12,5 +12,6 @@ router.post('/refresh', authController.refreshToken);
 router.get('/me', authenticate, authController.getCurrentUser);
 router.put('/profile', authenticate, authController.updateProfile);
 router.post('/verify-sha', authenticate, authController.verifySHAMembership);
+router.post("/login", loginController);
 
 module.exports = router;

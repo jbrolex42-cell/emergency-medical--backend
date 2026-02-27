@@ -68,11 +68,11 @@ app.use("/api/providers", providerRoutes);
 
 
 app.use((err, req, res, next) => {
-    console.error(err.stack);
+    console.error("Backend Error:", err);
 
     res.status(500).json({
         error: "Server error",
-        message: process.env.NODE_ENV === "development" ? err.message : undefined
+        message: err.message
     });
 });
 
