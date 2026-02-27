@@ -14,14 +14,22 @@ const authController = {
   },
 
   login: async (req, res, next) => {
-    try {
-      const { email, password } = req.body;
-      const result = await authService.login(email, password);
-      apiResponse.success(res, result);
-    } catch (error) {
-      next(error);
+  try {
+
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return apiResponse.error(res, "Email and password are required", 400);
     }
-  },
+
+    const result = await authService.login(email, password);
+
+    apiResponse.success(res, result);
+
+  } catch (error) {
+    next(error);
+  }
+},
 
   logout: async (req, res, next) => {
     try {
