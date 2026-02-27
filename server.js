@@ -1,7 +1,6 @@
 require('dotenv').config();
 
 const express = require('express');
-const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
@@ -18,22 +17,21 @@ const app = express();
 
 app.use(helmet());
 
-app.use(cors({
-    origin: "https://emergency-frontend-sepia.vercel.app",
-    credentials: true,
-    methods: ["GET","POST","PUT","DELETE","OPTIONS"],
-    allowedHeaders: ["Content-Type","Authorization"],
-    exposedHeaders: ["Authorization"],
-    preflightContinue: false,
-    optionsSuccessStatus: 204
-}));
+const FRONTEND_ORIGIN = "https://emergency-frontend-sepia.vercel.app";
 
 app.use((req, res, next) => {
-    res.header("Access-Control-Allow-Origin", "https://emergency-frontend-sepia.vercel.app");
+
+    res.header("Access-Control-Allow-Origin", FRONTEND_ORIGIN);
     res.header("Access-Control-Allow-Credentials", "true");
+    res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+    if (req.method === "OPTIONS") {
+        return res.sendStatus(204);
+    }
+
     next();
 });
-
 
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
@@ -56,7 +54,6 @@ const authLimiter = rateLimit({
 app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/register", authLimiter);
 
-
 app.use(express.static(path.join(__dirname, "public")));
 
 app.get("/", (req, res) => {
@@ -75,13 +72,15 @@ app.use("/api/subscriptions", subscriptionRoutes);
 app.use("/api/emergency", emergencyRoutes);
 app.use("/api/providers", providerRoutes);
 
-
 app.use((err, req, res, next) => {
+
     console.error("Backend Error:", err);
 
     res.status(500).json({
         error: "Server error",
-        message: err.message
+        message: process.env.NODE_ENV === "development"
+            ? err.message
+            : "Internal server error"
     });
 });
 
@@ -91,11 +90,12 @@ app.use((req, res) => {
     });
 });
 
-
 const PORT = process.env.PORT || 10000;
 
 const startServer = async () => {
+
     try {
+
         await testConnection();
 
         if (process.env.NODE_ENV === "development") {
@@ -109,6 +109,7 @@ const startServer = async () => {
         });
 
     } catch (error) {
+
         console.error("Server startup failed:", error);
         process.exit(1);
     }
