@@ -19,11 +19,20 @@ const app = express();
 app.use(helmet());
 
 app.use(cors({
-    origin: process.env.FRONTEND_URL || "https://emergency-frontend-sepia.vercel.app",
+    origin: "https://emergency-frontend-sepia.vercel.app",
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
+    methods: ["GET","POST","PUT","DELETE","OPTIONS"],
+    allowedHeaders: ["Content-Type","Authorization"],
+    exposedHeaders: ["Authorization"],
+    preflightContinue: false,
+    optionsSuccessStatus: 204
 }));
+
+app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "https://emergency-frontend-sepia.vercel.app");
+    res.header("Access-Control-Allow-Credentials", "true");
+    next();
+});
 
 
 app.use(express.json({ limit: "2mb" }));
