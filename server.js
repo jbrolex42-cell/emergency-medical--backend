@@ -39,7 +39,6 @@ const globalLimiter = rateLimit({
 
 app.use("/api/", globalLimiter);
 
-/* Authentication limiter */
 
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
