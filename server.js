@@ -116,4 +116,13 @@ const startServer = async () => {
     }
 };
 
+setInterval(async () => {
+  try {
+    await sequelize.authenticate()
+    console.log("DB heartbeat OK")
+  } catch {
+    console.log("DB reconnecting...")
+  }
+}, 60000)
+
 startServer();
