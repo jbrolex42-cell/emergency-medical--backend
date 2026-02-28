@@ -1,68 +1,78 @@
-require('dotenv').config();
+require("dotenv").config();
 
-const express = require('express');
-const helmet = require('helmet');
-const compression = require('compression');
-const morgan = require('morgan');
-const rateLimit = require('express-rate-limit');
-const path = require('path');
+const express = require("express");
+const helmet = require("helmet");
+const compression = require("compression");
+const morgan = require("morgan");
+const rateLimit = require("express-rate-limit");
+const path = require("path");
 
-const { sequelize, testConnection } = require('./src/config/database');
+const { sequelize, testConnection } = require("./src/config/database");
 
-const authRoutes = require('./src/routes/auth');
-const subscriptionRoutes = require('./src/routes/subscriptions');
-const emergencyRoutes = require('./src/routes/emergencies');
-const providerRoutes = require('./src/routes/providers');
+const authRoutes = require("./src/routes/auth");
+const subscriptionRoutes = require("./src/routes/subscriptions");
+const emergencyRoutes = require("./src/routes/emergencies");
+const providerRoutes = require("./src/routes/providers");
 
 const app = express();
 
 app.use(helmet());
+app.use(compression());
 
 const FRONTEND_ORIGIN = process.env.FRONTEND_URL;
 
 app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", FRONTEND_ORIGIN);
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET,POST,PUT,DELETE,OPTIONS"
+  );
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization"
+  );
 
-    res.setHeader("Access-Control-Allow-Origin", FRONTEND_ORIGIN);
-    res.setHeader("Access-Control-Allow-Credentials", "true");
-    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
 
-    if (req.method === "OPTIONS") {
-        return res.sendStatus(200);
-    }
-
-    next();
+  next();
 });
 
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
+app.use(
+  morgan(process.env.NODE_ENV === "production" ? "combined" : "dev")
+);
 
 const globalLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 100
+  windowMs: 15 * 60 * 1000,
+  max: 100
 });
 
 app.use("/api/", globalLimiter);
 
 const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 20,
-    message: "Too many authentication attempts. Try later."
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: "Too many authentication attempts. Try later."
 });
+
+app.use("/api/auth", authLimiter);
 
 app.use(express.static(path.join(__dirname, "public")));
 
 app.get("/", (req, res) => {
-    res.send("Backend is running successfully");
+  res.send("Backend is running successfully");
 });
 
 app.get("/health", (req, res) => {
-    res.json({
-        status: "OK",
-        timestamp: new Date().toISOString()
-    });
+  res.json({
+    status: "OK",
+    timestamp: new Date().toISOString()
+  });
 });
 
 app.use("/api/auth", authRoutes);
@@ -71,55 +81,52 @@ app.use("/api/emergency", emergencyRoutes);
 app.use("/api/providers", providerRoutes);
 
 app.use((err, req, res, next) => {
+  console.error("Backend Error:", err);
 
-    console.error("Backend Error:", err);
-
-    res.status(500).json({
-        error: "Server error",
-        message: process.env.NODE_ENV === "development"
-            ? err.message
-            : "Internal server error"
-    });
+  res.status(500).json({
+    error: "Server error",
+    message:
+      process.env.NODE_ENV === "development"
+        ? err.message
+        : "Internal server error"
+  });
 });
 
 app.use((req, res) => {
-    res.status(404).json({
-        error: "Route not found"
-    });
+  res.status(404).json({
+    error: "Route not found"
+  });
 });
 
 const PORT = process.env.PORT || 10000;
 
 const startServer = async () => {
+  try {
+    await testConnection();
+    console.log("Database connected");
 
-    try {
+    await sequelize.sync({ alter: true });
+    console.log("Database synced");
 
-        await testConnection();
-
-        if (process.env.NODE_ENV === "development") {
-            await sequelize.sync();
-            console.log("Database synced");
-        }
-
-        app.listen(PORT, () => {
-            console.log(`Server running on port ${PORT}`);
-            console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
-        });
-
-    } catch (error) {
-
-        console.error("Server startup failed:", error);
-        process.exit(1);
-    }
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+      console.log(
+        `Environment: ${process.env.NODE_ENV || "development"}`
+      );
+    });
+  } catch (error) {
+    console.error("Server startup failed:", error);
+    process.exit(1);
+  }
 };
 
 setInterval(async () => {
   try {
-    await sequelize.authenticate()
-    console.log("DB heartbeat OK")
-  } catch {
-    console.log("DB reconnecting...")
+    await sequelize.authenticate();
+    console.log("DB heartbeat OK");
+  } catch (err) {
+    console.error("DB reconnecting...", err.message);
   }
-}, 60000)
+}, 60000);
 
 startServer();
