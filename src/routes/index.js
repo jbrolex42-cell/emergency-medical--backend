@@ -3,7 +3,7 @@ const router = express.Router();
 
 const authRoutes = require('./auth');
 const emergencyRoutes = require('./emergencies');
-const subscriptionRoutes = require('./Subscriptions');
+const subscriptionRoutes = require('./subscriptions');
 const providerRoutes = require('./providers');
 
 router.use('/auth', authRoutes);

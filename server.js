@@ -52,9 +52,6 @@ const authLimiter = rateLimit({
     message: "Too many authentication attempts. Try later."
 });
 
-app.use("/api/auth/login", authLimiter);
-app.use("/api/auth/register", authLimiter);
-
 app.use(express.static(path.join(__dirname, "public")));
 
 app.get("/", (req, res) => {
