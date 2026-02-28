@@ -37,6 +37,6 @@
   },
   "publisher": "ROLEX.O.O",
   "devDependencies": {
-    "sequelize-cli": "^6.3.0"
+    "sequelize-cli": "^6.6.5"
   }
 }
