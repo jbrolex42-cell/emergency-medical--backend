@@ -6,16 +6,12 @@ const compression = require("compression");
 const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
 const cors = require("cors");
-
 const { sequelize } = require("./src/config/database");
-
 const authRoutes = require("./src/routes/auth");
 const subscriptionRoutes = require("./src/routes/subscriptions");
 const emergencyRoutes = require("./src/routes/emergencies");
 const providerRoutes = require("./src/routes/providers");
-
 const errorHandler = require("./src/middleware/errorHandler");
-
 const app = express();
 
 
