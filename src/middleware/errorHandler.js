@@ -34,12 +34,13 @@ const errorHandler = (err, req, res, next) => {
     });
   }
 
-  // ✅ Custom service error handling (VERY IMPORTANT)
-  if (err.statusCode) {
-    return res.status(err.statusCode).json({
-      error: err.message
-    });
-  }
+  // Custom service error handling
+if (err.statusCode) {
+  return res.status(err.statusCode).json({
+    success: false,
+    error: err.message
+  });
+}
 
   // Default server error
   res.status(500).json({
@@ -48,4 +49,10 @@ const errorHandler = (err, req, res, next) => {
   });
 };
 
+const status = err.statusCode || 500;
+
+res.status(status).json({
+  success: false,
+  error: err.message || 'Internal server error'
+});
 module.exports = errorHandler;
