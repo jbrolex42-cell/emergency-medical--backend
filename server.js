@@ -93,23 +93,21 @@ app.use((req, res) => {
   });
 });
 
-
 const PORT = process.env.PORT || 10000;
 
 const startServer = async () => {
   try {
-
     await sequelize.authenticate();
     console.log("Database connected");
 
     if (process.env.NODE_ENV === "development") {
       await sequelize.sync({ alter: true });
       console.log("Database synchronized (development mode)");
+    } else {
+      await sequelize.sync();
     }
 
-    console.log(
-      `Environment: ${process.env.NODE_ENV || "development"}`
-    );
+    console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
 
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
@@ -120,15 +118,5 @@ const startServer = async () => {
     process.exit(1);
   }
 };
-
-
-setInterval(async () => {
-  try {
-    await sequelize.authenticate();
-    console.log("DB heartbeat OK");
-  } catch (err) {
-    console.error("DB heartbeat error:", err.message);
-  }
-}, 60000);
 
 startServer();
