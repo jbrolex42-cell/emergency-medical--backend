@@ -6,6 +6,7 @@ const compression = require("compression");
 const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
 const path = require("path");
+const cors = require("cors");
 
 const { sequelize, testConnection } = require("./src/config/database");
 
@@ -16,36 +17,60 @@ const providerRoutes = require("./src/routes/providers");
 
 const app = express();
 
+/*
+--------------------------------------------------
+ SECURITY + PERFORMANCE MIDDLEWARE
+--------------------------------------------------
+*/
+
 app.use(helmet());
 app.use(compression());
 
-const FRONTEND_ORIGIN = process.env.FRONTEND_URL;
+app.set("trust proxy", 1);
 
-app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", FRONTEND_ORIGIN);
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET,POST,PUT,DELETE,OPTIONS"
-  );
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization"
-  );
+/*
+--------------------------------------------------
+ CORS CONFIGURATION (CLEAN VERSION)
+--------------------------------------------------
+*/
 
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
-  }
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+  })
+);
 
-  next();
-});
+/*
+--------------------------------------------------
+ BODY PARSING
+--------------------------------------------------
+*/
 
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
-app.set('trust proxy', 1);
+
+/*
+--------------------------------------------------
+ LOGGING
+--------------------------------------------------
+*/
+
 app.use(
-  morgan(process.env.NODE_ENV === "production" ? "combined" : "dev")
+  morgan(
+    process.env.NODE_ENV === "production"
+      ? "combined"
+      : "dev"
+  )
 );
+
+/*
+--------------------------------------------------
+ RATE LIMITING
+--------------------------------------------------
+*/
 
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -62,7 +87,22 @@ const authLimiter = rateLimit({
 
 app.use("/api/auth", authLimiter);
 
-app.use(express.static(path.join(__dirname, "public")));
+/*
+--------------------------------------------------
+ API ROUTES (IMPORTANT ORDER)
+--------------------------------------------------
+*/
+
+app.use("/api/auth", authRoutes);
+app.use("/api/subscriptions", subscriptionRoutes);
+app.use("/api/emergency", emergencyRoutes);
+app.use("/api/providers", providerRoutes);
+
+/*
+--------------------------------------------------
+ HEALTH CHECK ROUTES
+--------------------------------------------------
+*/
 
 app.get("/", (req, res) => {
   res.send("Backend is running successfully");
@@ -75,28 +115,40 @@ app.get("/health", (req, res) => {
   });
 });
 
-app.use("/api/auth", authRoutes);
-app.use("/api/subscriptions", subscriptionRoutes);
-app.use("/api/emergency", emergencyRoutes);
-app.use("/api/providers", providerRoutes);
+/*
+--------------------------------------------------
+ ERROR HANDLER (VERY IMPORTANT)
+--------------------------------------------------
+*/
 
 app.use((err, req, res, next) => {
   console.error("Backend Error:", err);
 
-  res.status(500).json({
-    error: "Server error",
-    message:
-      process.env.NODE_ENV === "development"
-        ? err.message
-        : "Internal server error"
+  const statusCode = err.statusCode || 500;
+
+  res.status(statusCode).json({
+    success: false,
+    error: err.message || "Internal server error"
   });
 });
+
+/*
+--------------------------------------------------
+ 404 HANDLER
+--------------------------------------------------
+*/
 
 app.use((req, res) => {
   res.status(404).json({
     error: "Route not found"
   });
 });
+
+/*
+--------------------------------------------------
+ SERVER STARTUP
+--------------------------------------------------
+*/
 
 const PORT = process.env.PORT || 10000;
 
@@ -106,19 +158,25 @@ const startServer = async () => {
     console.log("Database connected");
 
     await sequelize.sync();
+
     console.log("Database connected");
+    console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
 
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
-      console.log(
-        `Environment: ${process.env.NODE_ENV || "development"}`
-      );
     });
+
   } catch (error) {
     console.error("Server startup failed:", error);
     process.exit(1);
   }
 };
+
+/*
+--------------------------------------------------
+ DATABASE HEARTBEAT
+--------------------------------------------------
+*/
 
 setInterval(async () => {
   try {
