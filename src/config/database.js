@@ -1,50 +1,56 @@
-const { Sequelize } = require('sequelize');
-const logger = require('../utils/logger');
+const { Sequelize } = require("sequelize");
+require("dotenv").config();
+const logger = require("../utils/logger");
 
-const DATABASE_URL = process.env.DATABASE_URL;
+let sequelize;
 
-if (!DATABASE_URL) {
-    throw new Error("DATABASE_URL is missing in environment variables");
-}
 
-const sequelize = new Sequelize(DATABASE_URL, {
-    dialect: 'postgres',
-    logging: process.env.NODE_ENV === 'production' ? console.log : false,
-    dialectOptions: {
-        ssl: {
-            require: true,
-            rejectUnauthorized: false
+
+if (process.env.NODE_ENV === "production" && process.env.DATABASE_URL) {
+
+    sequelize = new Sequelize(process.env.DATABASE_URL, {
+        dialect: "postgres",
+        logging: false,
+        dialectOptions: {
+            ssl: {
+                require: true,
+                rejectUnauthorized: false
+            }
+        },
+        pool: {
+            max: 5,
+            min: 0,
+            acquire: 30000,
+            idle: 10000
         }
-    },
-    pool: {
-        max: 5,
-        min: 0,
-        acquire: 30000,
-        idle: 10000
-    }
-});
+    });
+
+} else {
+
+    sequelize = new Sequelize(
+        process.env.DB_NAME,
+        process.env.DB_USER,
+        process.env.DB_PASSWORD,
+        {
+            host: process.env.DB_HOST,
+            port: process.env.DB_PORT,
+            dialect: "postgres",
+            logging: false
+        }
+    );
+}
 
 const testConnection = async () => {
     try {
         await sequelize.authenticate();
-        logger.info('Database connection established successfully');
+        logger.info("Database connection successful");
     } catch (error) {
-        logger.error('Unable to connect to database:', error.message);
+        logger.error("Database connection failed:", error.message);
         throw error;
-    }
-};
-
-const initializeDatabase = async () => {
-    await testConnection();
-
-    if (process.env.NODE_ENV === 'development') {
-        await sequelize.sync({ alter: true });
-        logger.info('Database models synchronized');
     }
 };
 
 module.exports = {
     sequelize,
-    testConnection,
-    initializeDatabase
+    testConnection
 };

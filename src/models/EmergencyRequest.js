@@ -32,13 +32,22 @@ const EmergencyRequest = sequelize.define('EmergencyRequest', {
   },
   // Location data (GPS + what3words)
   latitude: {
-    type: DataTypes.FLOAT,
-    allowNull: false
-  },
-  longitude: {
-    type: DataTypes.FLOAT,
-    allowNull: false
-  },
+  type: DataTypes.FLOAT,
+  allowNull: false,
+  validate: {
+    min: -5,
+    max: 5.5
+  }
+},
+
+longitude: {
+  type: DataTypes.FLOAT,
+  allowNull: false,
+  validate: {
+    min: 33,
+    max: 42
+  }
+},
   what3words: {
     type: DataTypes.STRING,
     comment: 'what3words address for rural locations'

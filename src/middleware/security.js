@@ -1,61 +1,49 @@
-const helmet = require('helmet');
-const cors = require('cors');
-const rateLimit = require('express-rate-limit');
-const { FRONTEND_URL } = require('../config/env');
+const helmet = require("helmet");
+const cors = require("cors");
+const rateLimit = require("express-rate-limit");
+require("dotenv").config();
 
-// General API rate limiter
+const FRONTEND_URL = process.env.FRONTEND_URL;
+
 const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: 100,
   message: {
-    error: 'Too many requests',
-    message: 'Please try again later'
-  },
-  standardHeaders: true,
-  legacyHeaders: false
+    error: "Too many requests",
+    message: "Please try again later"
+  }
 });
 
-// Strict auth rate limiter (KMPDC compliance for security)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
   message: {
-    error: 'Too many authentication attempts',
-    message: 'Please try again after 15 minutes'
+    error: "Too many authentication attempts",
+    message: "Please try again after 15 minutes"
   }
 });
 
-// Emergency request limiter (higher limit for emergencies)
 const emergencyLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 3, // Max 3 emergency calls per minute per IP
+  windowMs: 60 * 1000,
+  max: 3,
   message: {
-    error: 'Emergency request limit reached',
-    message: 'Please call 999/112 directly if immediate assistance needed'
+    error: "Emergency request limit reached",
+    message: "Please call emergency services directly if urgent"
   }
 });
+
 
 const securityMiddleware = [
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        connectSrc: ["'self'", "https://api.what3words.com", "https://api.sha.go.ke"],
-        imgSrc: ["'self'", "data:", "https://assets.what3words.com"],
-        scriptSrc: ["'self'", "'unsafe-inline'"],
-        styleSrc: ["'self'", "'unsafe-inline'"]
-      }
-    }
-  }),
+  helmet(),
   cors({
     origin: FRONTEND_URL,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    credentials: true
   }),
   generalLimiter
 ];
 
-module.exports = securityMiddleware;
-module.exports.authLimiter = authLimiter;
-module.exports.emergencyLimiter = emergencyLimiter;
+module.exports = {
+  securityMiddleware,
+  authLimiter,
+  emergencyLimiter
+};

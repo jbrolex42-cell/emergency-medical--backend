@@ -5,34 +5,25 @@ const helmet = require("helmet");
 const compression = require("compression");
 const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
-const path = require("path");
 const cors = require("cors");
 
-const { sequelize, testConnection } = require("./src/config/database");
+const { sequelize } = require("./src/config/database");
 
 const authRoutes = require("./src/routes/auth");
 const subscriptionRoutes = require("./src/routes/subscriptions");
 const emergencyRoutes = require("./src/routes/emergencies");
 const providerRoutes = require("./src/routes/providers");
 
+const errorHandler = require("./src/middleware/errorHandler");
+
 const app = express();
 
-/*
---------------------------------------------------
- SECURITY + PERFORMANCE MIDDLEWARE
---------------------------------------------------
-*/
 
 app.use(helmet());
 app.use(compression());
 
 app.set("trust proxy", 1);
 
-/*
---------------------------------------------------
- CORS CONFIGURATION (CLEAN VERSION)
---------------------------------------------------
-*/
 
 app.use(
   cors({
@@ -43,20 +34,10 @@ app.use(
   })
 );
 
-/*
---------------------------------------------------
- BODY PARSING
---------------------------------------------------
-*/
 
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-/*
---------------------------------------------------
- LOGGING
---------------------------------------------------
-*/
 
 app.use(
   morgan(
@@ -66,18 +47,14 @@ app.use(
   )
 );
 
-/*
---------------------------------------------------
- RATE LIMITING
---------------------------------------------------
-*/
+
 
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100
 });
 
-app.use("/api/", globalLimiter);
+app.use("/api", globalLimiter);
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -87,22 +64,12 @@ const authLimiter = rateLimit({
 
 app.use("/api/auth", authLimiter);
 
-/*
---------------------------------------------------
- API ROUTES (IMPORTANT ORDER)
---------------------------------------------------
-*/
 
 app.use("/api/auth", authRoutes);
 app.use("/api/subscriptions", subscriptionRoutes);
 app.use("/api/emergency", emergencyRoutes);
 app.use("/api/providers", providerRoutes);
 
-/*
---------------------------------------------------
- HEALTH CHECK ROUTES
---------------------------------------------------
-*/
 
 app.get("/", (req, res) => {
   res.send("Backend is running successfully");
@@ -115,28 +82,10 @@ app.get("/health", (req, res) => {
   });
 });
 
-/*
---------------------------------------------------
- ERROR HANDLER (VERY IMPORTANT)
---------------------------------------------------
-*/
 
-app.use((err, req, res, next) => {
-  console.error("Backend Error:", err);
+app.use(errorHandler);
 
-  const statusCode = err.statusCode || 500;
 
-  res.status(statusCode).json({
-    success: false,
-    error: err.message || "Internal server error"
-  });
-});
-
-/*
---------------------------------------------------
- 404 HANDLER
---------------------------------------------------
-*/
 
 app.use((req, res) => {
   res.status(404).json({
@@ -144,22 +93,23 @@ app.use((req, res) => {
   });
 });
 
-/*
---------------------------------------------------
- SERVER STARTUP
---------------------------------------------------
-*/
 
 const PORT = process.env.PORT || 10000;
 
 const startServer = async () => {
   try {
-    await testConnection();
+
+    await sequelize.authenticate();
     console.log("Database connected");
 
-    await sequelize.sync();
+    if (process.env.NODE_ENV === "development") {
+      await sequelize.sync({ alter: true });
+      console.log("Database synchronized (development mode)");
+    }
 
-    console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
+    console.log(
+      `Environment: ${process.env.NODE_ENV || "development"}`
+    );
 
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
@@ -171,18 +121,13 @@ const startServer = async () => {
   }
 };
 
-/*
---------------------------------------------------
- DATABASE HEARTBEAT
---------------------------------------------------
-*/
 
 setInterval(async () => {
   try {
     await sequelize.authenticate();
     console.log("DB heartbeat OK");
   } catch (err) {
-    console.error("DB reconnecting...", err.message);
+    console.error("DB heartbeat error:", err.message);
   }
 }, 60000);
 

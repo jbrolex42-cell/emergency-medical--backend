@@ -1,12 +1,6 @@
 const twilio = require('twilio');
 const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER } = require('../config/env');
 
-/**
- * Notification Service
- * Handles SMS notifications to users and providers
- * Critical for rural areas with limited internet
- */
-
 let twilioClient = null;
 if (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN) {
   twilioClient = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
@@ -38,7 +32,6 @@ const notificationService = {
     const messages = providers.map(async (provider) => {
       const message = `EMERGENCY ALERT: ${emergency.type} emergency reported ${emergency.distance.toFixed(1)}km away. Severity: ${emergency.severity}. Respond via app or call 999.`;
       
-      // Notify provider contact
       if (provider.contactPhone) {
         await notificationService.notifyUser(provider.contactPhone, { message });
       }
@@ -62,7 +55,6 @@ const notificationService = {
   sendSOS: async (phoneNumber, location) => {
     const message = `SOS from ${phoneNumber}. Location: ${location.what3words || `${location.lat}, ${location.lng}`}. Please send help immediately.`;
     
-    // Send to emergency contacts and 999
     await notificationService.notifyUser('999', { message });
     
     return true;
@@ -70,7 +62,7 @@ const notificationService = {
 };
 
 function formatPhoneNumber(phone) {
-  // Ensure Kenyan format (+254...)
+
   if (phone.startsWith('0')) {
     return '+254' + phone.substring(1);
   }

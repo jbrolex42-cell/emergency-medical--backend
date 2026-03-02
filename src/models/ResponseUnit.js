@@ -1,74 +1,102 @@
-const { DataTypes } = require('sequelize');
-const { sequelize } = require('../config/database');
+const { DataTypes } = require("sequelize");
+const { sequelize } = require("../config/database");
 
-const ResponseUnit = sequelize.define('ResponseUnit', {
+const ResponseUnit = sequelize.define("ResponseUnit", {
+
   id: {
     type: DataTypes.UUID,
     defaultValue: DataTypes.UUIDV4,
     primaryKey: true
   },
+
   providerId: {
     type: DataTypes.UUID,
-    allowNull: false,
-    references: {
-      model: 'providers',
-      key: 'id'
-    }
+    allowNull: false
   },
+
   name: {
     type: DataTypes.STRING,
     allowNull: false
   },
+
   type: {
-    type: DataTypes.ENUM('motorcycle', 'bicycle', 'foot'),
-    defaultValue: 'motorcycle'
+    type: DataTypes.ENUM(
+      "motorcycle",
+      "bicycle",
+      "foot"
+    ),
+    defaultValue: "motorcycle"
   },
-  // EMT/Personnel info
+
   emtName: {
     type: DataTypes.STRING,
     allowNull: false
   },
+
   emtLicenseNumber: {
     type: DataTypes.STRING,
     allowNull: false,
-    comment: 'KMPDC EMT license'
+    unique: true
   },
+
   emtPhone: {
-    type: DataTypes.STRING
+    type: DataTypes.STRING,
+    validate: {
+      is: /^(?:\+254|0)(7\d{8})$/
+    }
   },
-  // Location tracking
+
   currentLatitude: {
-    type: DataTypes.FLOAT
+    type: DataTypes.FLOAT,
+    validate: {
+      min: -5,
+      max: 5.5
+    }
   },
+
   currentLongitude: {
-    type: DataTypes.FLOAT
+    type: DataTypes.FLOAT,
+    validate: {
+      min: 33,
+      max: 42
+    }
   },
+
   lastLocationUpdate: {
     type: DataTypes.DATE
   },
+
   status: {
-    type: DataTypes.ENUM('available', 'busy', 'offline'),
-    defaultValue: 'offline'
+    type: DataTypes.ENUM(
+      "available",
+      "busy",
+      "offline"
+    ),
+    defaultValue: "offline"
   },
-  // Equipment (lightweight for motorcycle responders)
+
   hasOxygen: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
   },
+
   hasFirstAidKit: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
   },
+
   hasPulseOximeter: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
   },
+
   hasStretcher: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
   }
+
 }, {
-  tableName: 'response_units',
+  tableName: "response_units",
   timestamps: true
 });
 
