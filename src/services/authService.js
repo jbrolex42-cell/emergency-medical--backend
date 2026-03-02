@@ -64,49 +64,54 @@ const authService = {
 
 
   login: async (email, password) => {
-    try {
 
-      if (!email || !password) {
-        throw new Error("Invalid credentials");
-      }
+  if (!email || !password) {
+    const error = new Error("Invalid credentials");
+    error.statusCode = 401;
+    throw error;
+  }
 
-      const user = await User.findOne({
-        where: { email }
-      });
+  const user = await User.findOne({
+    where: { email: email.toLowerCase() }
+  });
 
-      if (!user) {
-        throw new Error("Invalid credentials");
-      }
+  if (!user) {
+    const error = new Error("Invalid credentials");
+    error.statusCode = 401;
+    throw error;
+  }
 
-      if (typeof user.validatePassword !== "function") {
-        throw new Error("Authentication system error");
-      }
+  if (typeof user.validatePassword !== "function") {
+    const error = new Error("Authentication system error");
+    error.statusCode = 500;
+    throw error;
+  }
 
-      const isValidPassword = await user.validatePassword(password);
+  const isValidPassword = await user.validatePassword(password);
 
-      if (!isValidPassword) {
-        throw new Error("Invalid credentials");
-      }
+  if (!isValidPassword) {
+    const error = new Error("Invalid credentials");
+    error.statusCode = 401;
+    throw error;
+  }
 
-      if (user.status && user.status !== "active") {
-        throw new Error("Account is not active");
-      }
+  if (user.status && user.status !== "active") {
+    const error = new Error("Account is not active");
+    error.statusCode = 403;
+    throw error;
+  }
 
-      await user.update({
-        lastLogin: new Date()
-      });
+  await user.update({
+    lastLogin: new Date()
+  });
 
-      const tokens = generateTokens(user.id);
+  const tokens = generateTokens(user.id);
 
-      return {
-        user: user.toJSON(),
-        tokens
-      };
-
-    } catch (error) {
-      throw error;
-    }
-  },
+  return {
+    user: user.toJSON(),
+    tokens
+  };
+},
 
   logout: async () => {
     return true;
