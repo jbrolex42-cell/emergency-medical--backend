@@ -10,6 +10,10 @@ const errorHandler = (err, req, res, next) => {
     timestamp: new Date().toISOString()
   });
 
+  if (!err) {
+  return next();
+}
+
   // Multer file size error
   if (err.code === 'LIMIT_FILE_SIZE') {
     return res.status(400).json({
