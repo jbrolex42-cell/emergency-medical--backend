@@ -70,53 +70,69 @@ const authService = {
     };
   },
 
+  login: async (identifier, password) => {
 
-  login: async (email, password) => {
+  if (!identifier || !password) {
+    const error = new Error("Email/Phone and password are required");
+    error.statusCode = 400;
+    throw error;
+  }
 
-    if (!email || !password) {
-      const error = new Error("Email and password are required");
-      error.statusCode = 400;
-      throw error;
-    }
+  identifier = identifier.toLowerCase().trim();
 
-    const user = await User.findOne({
-      where: { email: email.toLowerCase() }
+  let user;
+
+  if (identifier.includes("@")) {
+
+    user = await User.findOne({
+      where: { email: identifier }
     });
 
-    if (!user) {
-      const error = new Error("Invalid credentials");
-      error.statusCode = 401;
-      throw error;
-    }
+  } else {
 
-    const isValidPassword = await bcrypt.compare(
-      password,
-      user.password
-    );
+  
+    const normalizedPhone = identifier.replace(/\s+/g, "");
 
-    if (!isValidPassword) {
-      const error = new Error("Invalid credentials");
-      error.statusCode = 401;
-      throw error;
-    }
-
-    if (user.status && user.status !== "active") {
-      const error = new Error("Account is not active");
-      error.statusCode = 403;
-      throw error;
-    }
-
-    await user.update({
-      lastLogin: new Date()
+    user = await User.findOne({
+      where: { phone: normalizedPhone }
     });
+  }
 
-    const tokens = generateTokens(user.id);
+  if (!user) {
+    const error = new Error("Invalid credentials");
+    error.statusCode = 401;
+    throw error;
+  }
 
-    return {
-      user: user.toJSON(),
-      tokens
-    };
-  },
+  const isValidPassword = await bcrypt.compare(
+    password,
+    user.password
+  );
+
+  if (!isValidPassword) {
+    const error = new Error("Invalid credentials");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  if (user.status && user.status !== "active") {
+    const error = new Error("Account is not active");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  await user.update({
+    lastLogin: new Date()
+  });
+
+  const tokens = generateTokens(user.id);
+
+  return {
+    user: user.toJSON(),
+    tokens
+  };
+},
+  
 
  
   logout: async () => {

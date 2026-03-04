@@ -5,13 +5,12 @@ const { User } = require("../models");
 
 const authenticate = async (req, res, next) => {
   try {
-
     const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    if (!authHeader?.startsWith("Bearer ")) {
       return res.status(401).json({
-        error: "Access denied",
-        message: "No authentication token"
+        success: false,
+        message: "Authentication token missing"
       });
     }
 
@@ -23,14 +22,15 @@ const authenticate = async (req, res, next) => {
 
     if (!user) {
       return res.status(401).json({
-        error: "Authentication failed",
+        success: false,
         message: "User not found"
       });
     }
 
     if (user.status !== "active") {
       return res.status(403).json({
-        error: "Account restricted"
+        success: false,
+        message: "Account is restricted"
       });
     }
 
@@ -42,13 +42,15 @@ const authenticate = async (req, res, next) => {
 
     if (error.name === "TokenExpiredError") {
       return res.status(401).json({
-        error: "Token expired"
+        success: false,
+        message: "Token expired"
       });
     }
 
     if (error.name === "JsonWebTokenError") {
       return res.status(401).json({
-        error: "Invalid token"
+        success: false,
+        message: "Invalid authentication token"
       });
     }
 
@@ -60,10 +62,17 @@ const authenticate = async (req, res, next) => {
 const authorize = (...roles) => {
   return (req, res, next) => {
 
-    if (!req.user || !roles.includes(req.user.role)) {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized"
+      });
+    }
+
+    if (!roles.includes(req.user.role)) {
       return res.status(403).json({
-        error: "Access denied",
-        message: `Required role: ${roles.join(" or ")}`
+        success: false,
+        message: `Access requires role: ${roles.join(" | ")}`
       });
     }
 

@@ -13,11 +13,21 @@ const User = sequelize.define(
 
     email: {
       type: DataTypes.STRING,
-      allowNull: false,
       unique: true,
+      allowNull: true,
       validate: {
         isEmail: true,
         len: [5, 100],
+      },
+    },
+
+    phone: {
+      type: DataTypes.STRING,
+      unique: true,
+      allowNull: true,
+      validate: {
+        is: /^[0-9+\-() ]+$/,
+        len: [7, 20],
       },
     },
 
@@ -27,16 +37,6 @@ const User = sequelize.define(
       validate: {
         len: [8, 100],
       },
-    },
-
-    resetToken: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-
-    resetTokenExpiry: {
-      type: DataTypes.DATE,
-      allowNull: true,
     },
 
     firstName: {
@@ -49,28 +49,16 @@ const User = sequelize.define(
       allowNull: false,
     },
 
-    phone: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      unique: true,
-      validate: {
-        is: /^[0-9+\-() ]+$/,
-        len: [7, 20],
-      },
-    },
-
     idNumber: {
       type: DataTypes.STRING,
-      allowNull: false,
       unique: true,
-      validate: {
-        len: [5, 20],
-      },
+      allowNull: false,
     },
 
     shaNumber: {
       type: DataTypes.STRING,
       unique: true,
+      allowNull: true,
     },
 
     role: {
@@ -83,17 +71,11 @@ const User = sequelize.define(
       defaultValue: "active",
     },
 
-    emergencyContactName: {
-      type: DataTypes.STRING,
-    },
+    resetToken: DataTypes.STRING,
+    resetTokenExpiry: DataTypes.DATE,
 
-    emergencyContactPhone: {
-      type: DataTypes.STRING,
-      validate: {
-        is: /^[0-9+\-() ]+$/,
-      },
-    },
-
+    emergencyContactName: DataTypes.STRING,
+    emergencyContactPhone: DataTypes.STRING,
     bloodType: {
       type: DataTypes.ENUM(
         "A+",
@@ -107,23 +89,26 @@ const User = sequelize.define(
       ),
     },
 
-    allergies: {
-      type: DataTypes.TEXT,
-    },
+    allergies: DataTypes.TEXT,
+    medicalConditions: DataTypes.TEXT,
 
-    medicalConditions: {
-      type: DataTypes.TEXT,
-    },
-
-    lastLogin: {
-      type: DataTypes.DATE,
-    },
+    lastLogin: DataTypes.DATE,
   },
   {
     tableName: "users",
     timestamps: true,
 
     hooks: {
+      beforeValidate: (user) => {
+        if (!user.email && !user.phone) {
+          throw new Error("Either email or phone is required");
+        }
+
+        if (user.phone) {
+          user.phone = user.phone.replace(/\s+/g, "");
+        }
+      },
+
       beforeCreate: async (user) => {
         if (user.email) {
           user.email = user.email.toLowerCase();
@@ -135,7 +120,7 @@ const User = sequelize.define(
       },
 
       beforeUpdate: async (user) => {
-        if (user.changed("email")) {
+        if (user.changed("email") && user.email) {
           user.email = user.email.toLowerCase();
         }
 
@@ -154,6 +139,7 @@ User.prototype.validatePassword = async function (password) {
 User.prototype.toJSON = function () {
   const values = { ...this.get() };
   delete values.password;
+  delete values.resetToken;
   return values;
 };
 
