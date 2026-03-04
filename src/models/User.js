@@ -8,7 +8,7 @@ const User = sequelize.define(
     id: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
-      primaryKey: true
+      primaryKey: true,
     },
 
     email: {
@@ -17,28 +17,36 @@ const User = sequelize.define(
       unique: true,
       validate: {
         isEmail: true,
-        len: [5, 100]
-      }
+        len: [5, 100],
+      },
     },
 
     password: {
       type: DataTypes.STRING,
       allowNull: false,
       validate: {
-        len: [8, 100]
-      }
+        len: [8, 100],
+      },
+    },
+
+    resetToken: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+
+    resetTokenExpiry: {
+      type: DataTypes.DATE,
+      allowNull: true,
     },
 
     firstName: {
       type: DataTypes.STRING,
       allowNull: false,
-      trim: true
     },
 
     lastName: {
       type: DataTypes.STRING,
       allowNull: false,
-      trim: true
     },
 
     phone: {
@@ -47,8 +55,8 @@ const User = sequelize.define(
       unique: true,
       validate: {
         is: /^[0-9+\-() ]+$/,
-        len: [7, 20]
-      }
+        len: [7, 20],
+      },
     },
 
     idNumber: {
@@ -56,34 +64,34 @@ const User = sequelize.define(
       allowNull: false,
       unique: true,
       validate: {
-        len: [5, 20]
-      }
+        len: [5, 20],
+      },
     },
 
     shaNumber: {
       type: DataTypes.STRING,
-      unique: true
+      unique: true,
     },
 
     role: {
       type: DataTypes.ENUM("user", "provider", "emt", "admin"),
-      defaultValue: "user"
+      defaultValue: "user",
     },
 
     status: {
       type: DataTypes.ENUM("active", "inactive", "suspended"),
-      defaultValue: "active"
+      defaultValue: "active",
     },
 
     emergencyContactName: {
-      type: DataTypes.STRING
+      type: DataTypes.STRING,
     },
 
     emergencyContactPhone: {
       type: DataTypes.STRING,
       validate: {
-        is: /^[0-9+\-() ]+$/
-      }
+        is: /^[0-9+\-() ]+$/,
+      },
     },
 
     bloodType: {
@@ -96,22 +104,21 @@ const User = sequelize.define(
         "AB-",
         "O+",
         "O-"
-      )
+      ),
     },
 
     allergies: {
-      type: DataTypes.TEXT
+      type: DataTypes.TEXT,
     },
 
     medicalConditions: {
-      type: DataTypes.TEXT
+      type: DataTypes.TEXT,
     },
 
     lastLogin: {
-      type: DataTypes.DATE
-    }
+      type: DataTypes.DATE,
+    },
   },
-
   {
     tableName: "users",
     timestamps: true,
@@ -135,11 +142,10 @@ const User = sequelize.define(
         if (user.changed("password")) {
           user.password = await bcrypt.hash(user.password, 12);
         }
-      }
-    }
+      },
+    },
   }
 );
-
 
 User.prototype.validatePassword = async function (password) {
   return bcrypt.compare(password, this.password);
@@ -147,9 +153,7 @@ User.prototype.validatePassword = async function (password) {
 
 User.prototype.toJSON = function () {
   const values = { ...this.get() };
-
   delete values.password;
-
   return values;
 };
 
