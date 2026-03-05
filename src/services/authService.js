@@ -2,7 +2,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const { User } = require("../models");
 const { JWT_SECRET } = require("../config/env");
-
+const { authValidators } = require("../validators/validator");
 const authService = {
 
 async register(data){
