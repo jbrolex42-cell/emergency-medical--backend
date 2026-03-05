@@ -15,6 +15,7 @@ const emergencyRoutes = require("./src/routes/emergencies");
 const providerRoutes = require("./src/routes/providers");
 
 const errorHandler = require("./src/middleware/errorHandler");
+const globalErrorHandler = require("./src/middleware/globalErrorHandler");
 
 const app = express();
 
@@ -79,6 +80,7 @@ app.use((_, res) => {
   });
 });
 
+app.use(globalErrorHandler);
 
 const PORT = process.env.PORT || 10000;
 
