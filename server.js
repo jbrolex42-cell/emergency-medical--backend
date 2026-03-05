@@ -60,7 +60,7 @@ const authLimiter = rateLimit({
 
 app.use("/api/auth", authLimiter);
 
-
+app.use("/api/auth", require("./routes/auth"));
 app.use("/api/auth", authRoutes);
 app.use("/api/subscriptions", subscriptionRoutes);
 app.use("/api/emergency", emergencyRoutes);
