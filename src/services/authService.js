@@ -3,209 +3,92 @@ const bcrypt = require("bcrypt");
 const { User } = require("../models");
 const { JWT_SECRET } = require("../config/env");
 
-const generateTokens = (userId) => {
-  const accessToken = jwt.sign(
-    { userId },
-    JWT_SECRET,
-    { expiresIn: "15m" }
-  );
-
-  const refreshToken = jwt.sign(
-    { userId },
-    JWT_SECRET,
-    { expiresIn: "7d" }
-  );
-
-  return { accessToken, refreshToken };
-};
-
 const authService = {
 
-  register: async (userData) => {
-    if (!userData?.email || !userData?.password) {
-      const error = new Error("Email and password are required");
-      error.statusCode = 400;
-      throw error;
-    }
+async register(data){
 
-    const email = userData.email.toLowerCase();
+const user = await User.create({
+email: data.email,
+password: data.password,
+firstName: data.firstName,
+lastName: data.lastName,
+phone: data.phone,
+role: data.role,
+county: data.county,
+idNumber: data.idNumber,
+emergencyContactName: data.emergencyContactName,
+emergencyContactPhone: data.emergencyContactPhone,
+bloodType: data.bloodType,
+allergies: data.allergies
+});
 
-    const existingUser = await User.findOne({
-      where: { email }
-    });
+const token = jwt.sign(
+{ userId:user.id },
+JWT_SECRET,
+{ expiresIn:"7d" }
+);
 
-    if (existingUser) {
-      const error = new Error("Email already registered");
-      error.statusCode = 409;
-      throw error;
-    }
+return {
+token,
+user
+};
 
-    if (userData.phone) {
-      const existingPhone = await User.findOne({
-        where: { phone: userData.phone }
-      });
-
-      if (existingPhone) {
-        const error = new Error("Phone number already registered");
-        error.statusCode = 409;
-        throw error;
-      }
-    }
-
-  
-    const hashedPassword = await bcrypt.hash(userData.password, 10);
-
-    const user = await User.create({
-      ...userData,
-      email,
-      password: hashedPassword
-    });
-
-    const tokens = generateTokens(user.id);
-
-    return {
-      user: user.toJSON(),
-      tokens,
-      message: "Registration successful"
-    };
-  },
-
-  login: async (identifier, password) => {
-
-  if (!identifier || !password) {
-    const error = new Error("Email/Phone and password are required");
-    error.statusCode = 400;
-    throw error;
-  }
-
-  identifier = identifier.toLowerCase().trim();
-
-  let user;
-
-  if (identifier.includes("@")) {
-
-    user = await User.findOne({
-      where: { email: identifier }
-    });
-
-  } else {
-
-  
-    const normalizedPhone = identifier.replace(/\s+/g, "");
-
-    user = await User.findOne({
-      where: { phone: normalizedPhone }
-    });
-  }
-
-  if (!user) {
-    const error = new Error("Invalid credentials");
-    error.statusCode = 401;
-    throw error;
-  }
-
-  const isValidPassword = await bcrypt.compare(
-    password,
-    user.password
-  );
-
-  if (!isValidPassword) {
-    const error = new Error("Invalid credentials");
-    error.statusCode = 401;
-    throw error;
-  }
-
-  if (user.status && user.status !== "active") {
-    const error = new Error("Account is not active");
-    error.statusCode = 403;
-    throw error;
-  }
-
-  await user.update({
-    lastLogin: new Date()
-  });
-
-  const tokens = generateTokens(user.id);
-
-  return {
-    user: user.toJSON(),
-    tokens
-  };
 },
-  
 
- 
-  logout: async () => {
-    return true;
-  },
+async login(identifier,password){
 
+const user = await User.findOne({
+where:{
+email:identifier
+}
+});
 
-  refreshToken: async (refreshToken) => {
-    if (!refreshToken) {
-      const error = new Error("Refresh token missing");
-      error.statusCode = 400;
-      throw error;
-    }
+if(!user){
+throw new Error("Invalid credentials");
+}
 
-    try {
-      const decoded = jwt.verify(refreshToken, JWT_SECRET);
-      return generateTokens(decoded.userId);
-    } catch {
-      const error = new Error("Invalid refresh token");
-      error.statusCode = 401;
-      throw error;
-    }
-  },
+const valid = await bcrypt.compare(password,user.password);
 
+if(!valid){
+throw new Error("Invalid credentials");
+}
 
-  getUserById: async (userId) => {
+const token = jwt.sign(
+{ userId:user.id },
+JWT_SECRET,
+{ expiresIn:"7d" }
+);
 
-    const user = await User.findByPk(userId);
+return {
+token,
+user
+};
 
-    if (!user) {
-      const error = new Error("User not found");
-      error.statusCode = 404;
-      throw error;
-    }
+},
 
-    return user.toJSON();
-  },
+async getUserById(id){
+return User.findByPk(id,{
+attributes:{exclude:["password"]}
+});
+},
 
- 
+async updateProfile(id,data){
 
-  updateProfile: async (userId, updates) => {
+await User.update(data,{
+where:{id}
+});
 
-    const allowedFields = [
-      "firstName",
-      "lastName",
-      "phone",
-      "emergencyContactName",
-      "emergencyContactPhone",
-      "bloodType",
-      "allergies",
-      "medicalConditions"
-    ];
+return this.getUserById(id);
 
-    const updateData = {};
+},
 
-    allowedFields.forEach(field => {
-      if (updates[field] !== undefined) {
-        updateData[field] = updates[field];
-      }
-    });
+async logout(){
+return true;
+},
 
-    const user = await User.findByPk(userId);
-
-    if (!user) {
-      const error = new Error("User not found");
-      error.statusCode = 404;
-      throw error;
-    }
-
-    await user.update(updateData);
-
-    return user.toJSON();
-  }
+async refreshToken(){
+return true;
+}
 
 };
 

@@ -1,184 +1,142 @@
-const authService = require('../services/authService');
-const shaIntegrationService = require('../services/shaIntegrationService');
-const apiResponse = require('../utils/apiResponse');
+const authService = require("../services/authService");
+const apiResponse = require("../utils/apiResponse");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const { User } = require("../models");
 
 const authController = {
 
-  register: async (req, res, next) => {
-    try {
-      if (!req.body) {
-        return apiResponse.error(res, "Invalid request", 400);
-      }
+async register(req,res,next){
 
-      const result = await authService.register(req.body);
-      apiResponse.success(res, result, 201);
+try{
 
-    } catch (error) {
-      next(error);
-    }
-  },
+const result = await authService.register(req.body);
 
-  login: async (req, res, next) => {
-  try {
-    const { email, phone, password } = req.body;
+return apiResponse.success(res,result,201);
 
-    if (!password || (!email && !phone)) {
-      return apiResponse.error(
-        res,
-        "Email or phone and password are required",
-        400
-      );
-    }
+}catch(error){
+next(error);
+}
 
-    let identifier = email || phone;
-
-    const result = await authService.login(identifier, password);
-
-    apiResponse.success(res, result);
-
-  } catch (error) {
-    next(error);
-  }
 },
 
-  logout: async (req, res, next) => {
-    try {
-      await authService.logout(req.user.id);
-      apiResponse.success(res, { message: "Logged out successfully" });
+async login(req,res,next){
 
-    } catch (error) {
-      next(error);
-    }
-  },
+try{
 
-  refreshToken: async (req, res, next) => {
-    try {
-      const { refreshToken } = req.body;
+const { email,identifier,password } = req.body;
 
-      if (!refreshToken) {
-        return apiResponse.error(res, "Refresh token required", 400);
-      }
+const loginId = email || identifier;
 
-      const result = await authService.refreshToken(refreshToken);
-      apiResponse.success(res, result);
+const result = await authService.login(loginId,password);
 
-    } catch (error) {
-      next(error);
-    }
-  },
+return apiResponse.success(res,result);
 
-  getCurrentUser: async (req, res, next) => {
-    try {
-      const user = await authService.getUserById(req.user.id);
-      apiResponse.success(res, user);
+}catch(error){
+next(error);
+}
 
-    } catch (error) {
-      next(error);
-    }
-  },
+},
 
-  updateProfile: async (req, res, next) => {
-    try {
-      const updated = await authService.updateProfile(req.user.id, req.body);
-      apiResponse.success(res, updated);
+async getCurrentUser(req,res,next){
 
-    } catch (error) {
-      next(error);
-    }
-  },
+try{
 
-  verifySHAMembership: async (req, res, next) => {
-    try {
-      const { idNumber } = req.body;
+const user = await authService.getUserById(req.user.id);
 
-      if (!idNumber) {
-        return apiResponse.error(res, "ID number required", 400);
-      }
+apiResponse.success(res,user);
 
-      const result = await shaIntegrationService.verifyMember(idNumber);
-      apiResponse.success(res, result);
+}catch(error){
+next(error);
+}
 
-    } catch (error) {
-      next(error);
-    }
-  },
+},
 
-  // ✅ MOVED INSIDE OBJECT
+async updateProfile(req,res,next){
 
-  forgotPassword: async (req, res) => {
-    try {
-      const { email } = req.body;
+try{
 
-      const user = await User.findOne({ where: { email } });
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
+const user = await authService.updateProfile(req.user.id,req.body);
 
-      const resetToken = crypto.randomBytes(32).toString("hex");
+apiResponse.success(res,user);
 
-      user.resetToken = resetToken;
-      user.resetTokenExpiry = Date.now() + 15 * 60 * 1000;
-      await user.save();
+}catch(error){
+next(error);
+}
 
-      const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-      });
+},
 
-      const resetURL = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+async forgotPassword(req,res){
 
-      await transporter.sendMail({
-        to: user.email,
-        from: process.env.EMAIL_USER,
-        subject: "Password Reset Request",
-        html: `
-          <h3>Password Reset</h3>
-          <p>Click the link below to reset your password:</p>
-          <a href="${resetURL}">${resetURL}</a>
-          <p>This link expires in 15 minutes.</p>
-        `,
-      });
+try{
 
-      res.json({ message: "Reset link sent to email" });
+const { email } = req.body;
 
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Error sending reset email" });
-    }
-  },
+const user = await User.findOne({where:{email}});
 
-  resetPassword: async (req, res) => {
-    try {
-      const { token } = req.params;
-      const { password } = req.body;
+if(!user){
+return res.status(404).json({message:"User not found"});
+}
 
-      const user = await User.findOne({
-        where: { resetToken: token },
-      });
+const token = crypto.randomBytes(32).toString("hex");
 
-      if (!user || user.resetTokenExpiry < Date.now()) {
-        return res.status(400).json({ message: "Invalid or expired token" });
-      }
+user.resetToken = token;
+user.resetTokenExpiry = Date.now()+15*60*1000;
 
-      user.password = password; // Make sure hashing happens in model hook
-      user.resetToken = null;
-      user.resetTokenExpiry = null;
+await user.save();
 
-      await user.save();
+const transporter = nodemailer.createTransport({
+service:"gmail",
+auth:{
+user:process.env.EMAIL_USER,
+pass:process.env.EMAIL_PASS
+}
+});
 
-      res.json({ message: "Password reset successful" });
+const resetURL = `${process.env.CLIENT_URL}/reset-password/${token}`;
 
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Error resetting password" });
-    }
-  }
+await transporter.sendMail({
+to:user.email,
+subject:"Password Reset",
+html:`<p>Reset your password</p><a href="${resetURL}">${resetURL}</a>`
+});
+
+res.json({message:"Reset email sent"});
+
+}catch(error){
+res.status(500).json({message:"Error sending reset email"});
+}
+
+},
+
+async resetPassword(req,res){
+
+try{
+
+const { token } = req.params;
+const { password } = req.body;
+
+const user = await User.findOne({
+where:{resetToken:token}
+});
+
+if(!user || user.resetTokenExpiry < Date.now()){
+return res.status(400).json({message:"Invalid token"});
+}
+
+user.password = password;
+user.resetToken=null;
+user.resetTokenExpiry=null;
+
+await user.save();
+
+res.json({message:"Password updated"});
+
+}catch(error){
+res.status(500).json({message:"Reset failed"});
+}
+
+}
 
 };
 

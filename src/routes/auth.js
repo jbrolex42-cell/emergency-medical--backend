@@ -1,57 +1,20 @@
 const express = require("express");
 const router = express.Router();
 
-const { authLimiter } = require("../middleware/security");
-const { authValidators } = require("../middleware/validators");
-const { authenticate } = require("../middleware/auth");
-
 const authController = require("../controllers/authController");
+const { authValidators } = require("../validators/validator");
+const { authenticate } = require("../middleware/authMiddleware");
 
-router.post(
-    "/register",
-    authLimiter,
-    authValidators.register,
-    authController.register
-);
+router.post("/register",authValidators.register,authController.register);
 
-router.post(
-    "/login",
-    authLimiter,
-    authValidators.login,
-    authController.login
-);
+router.post("/login",authValidators.login,authController.login);
 
-router.post(
-    "/logout",
-    authenticate,
-    authController.logout
-);
+router.get("/me",authenticate,authController.getCurrentUser);
 
-router.post(
-    "/refresh",
-    authController.refreshToken
-);
+router.put("/profile",authenticate,authController.updateProfile);
 
-router.get(
-    "/me",
-    authenticate,
-    authController.getCurrentUser
-);
+router.post("/forgot-password",authController.forgotPassword);
 
-router.put(
-    "/profile",
-    authenticate,
-    authController.updateProfile
-);
-
-router.post(
-    "/verify-sha",
-    authenticate,
-    authController.verifySHAMembership
-);
-
-router.post("/forgot-password", authController.forgotPassword);
-router.post("/reset-password/:token", authController.resetPassword);
-
+router.post("/reset-password/:token",authController.resetPassword);
 
 module.exports = router;
