@@ -7,10 +7,20 @@ const authenticate = (req, res, next) => {
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {
-      return res.status(401).json({ message: "Unauthorized" });
+      return res.status(401).json({
+        success: false,
+        message: "Authorization header missing"
+      });
     }
 
     const token = authHeader.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid authorization format"
+      });
+    }
 
     const decoded = jwt.verify(token, JWT_SECRET);
 
@@ -21,7 +31,10 @@ const authenticate = (req, res, next) => {
     next();
 
   } catch (error) {
-    return res.status(401).json({ message: "Invalid token" });
+    return res.status(401).json({
+      success: false,
+      message: "Authentication failed"
+    });
   }
 };
 
