@@ -2,12 +2,12 @@ const express = require("express");
 const router = express.Router();
 
 const authController = require("../controllers/authController");
-const { authValidators } = require("../validators/validator");
+const validators = require("../validators/validator");
 const { authenticate } = require("../middleware/authMiddleware");
 
-router.post("/register",authValidators.register,authController.register);
+router.post("/register", validators.authValidators.register, authController.register);
 
-router.post("/login",authValidators.login,authController.login);
+router.post("/login", validators.authValidators.login, authController.login);
 
 router.get("/me",authenticate,authController.getCurrentUser);
 
